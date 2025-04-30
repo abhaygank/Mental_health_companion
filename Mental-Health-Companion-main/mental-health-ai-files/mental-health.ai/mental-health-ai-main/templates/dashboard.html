@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard - Mental Health AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-indigo-900 text-white p-4 flex items-center justify-between">
+    <div class="text-xl font-bold">Mental Health AI Dashboard</div>
+    <div>
+      <a href="{{ url_for('index') }}" class="hover:underline flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Back to Chat
+      </a>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto p-6">
+    <section id="behavioral-tracker" class="bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-2xl font-bold mb-4">Behavioral Tracking Dashboard</h2>
+      <form id="behavioral-form" class="mb-6">
+        <label class="block mb-2 font-semibold">Mood *</label>
+        <div class="flex flex-wrap gap-2 mb-4" id="mood-buttons">
+          <!-- Mood buttons inserted by JS -->
+        </div>
+
+        <label class="block mb-2 font-semibold">Activities</label>
+        <input type="text" id="activities" placeholder="What activities did you do?" class="w-full border border-gray-300 rounded p-2 mb-4" />
+
+        <label class="block mb-2 font-semibold">Sleep Hours</label>
+        <input type="number" id="sleepHours" placeholder="How many hours did you sleep?" min="0" max="24" class="w-full border border-gray-300 rounded p-2 mb-4" />
+
+        <label class="block mb-2 font-semibold">Notes</label>
+        <textarea id="notes" placeholder="Additional notes" rows="3" class="w-full border border-gray-300 rounded p-2 mb-4 resize-none"></textarea>
+
+        <button type="submit" id="save-log" class="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white px-4 py-2 rounded hover:shadow-lg transition font-semibold">
+          Save Log
+        </button>
+      </form>
+
+      <h3 class="text-xl font-semibold mb-3">Recent Logs</h3>
+      <div id="loading" class="hidden">Loading logs...</div>
+      <ul id="logs-list" class="space-y-4"></ul>
+    </section>
+
+    <section id="voice-recorder" class="bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-2xl font-bold mb-4">Voice Analysis</h2>
+      <div class="mb-4">
+        <button id="start-recording" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">Start Recording</button>
+        <button id="stop-recording" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition hidden">Stop Recording</button>
+      </div>
+      <audio id="audio-playback" controls class="mb-4 hidden"></audio>
+      <pre id="voice-analysis-result" class="p-4 bg-green-100 rounded whitespace-pre-wrap hidden"></pre>
+    </section>
+
+    <section id="coping-mechanisms" class="bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-2xl font-bold mb-4">Coping Mechanisms & Resources</h2>
+      <ul class="space-y-4">
+        <li class="border border-gray-300 rounded p-4 hover:shadow-md transition">
+          <h3 class="text-xl font-semibold mb-2">Deep Breathing Exercises</h3>
+          <p>Practice deep breathing to reduce stress and anxiety. Try inhaling slowly for 4 seconds, holding for 7 seconds, and exhaling for 8 seconds.</p>
+          <a href="https://www.healthline.com/health/deep-breathing-exercises" target="_blank" class="text-blue-600 hover:underline">Learn more</a>
+        </li>
+        <li class="border border-gray-300 rounded p-4 hover:shadow-md transition">
+          <h3 class="text-xl font-semibold mb-2">Mindfulness Meditation</h3>
+          <p>Engage in mindfulness meditation to improve mental clarity and emotional calmness.</p>
+          <a href="https://www.mindful.org/how-to-meditate/" target="_blank" class="text-blue-600 hover:underline">Learn more</a>
+        </li>
+        <li class="border border-gray-300 rounded p-4 hover:shadow-md transition">
+          <h3 class="text-xl font-semibold mb-2">Physical Activity</h3>
+          <p>Regular exercise can help reduce symptoms of depression and anxiety.</p>
+          <a href="https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm" target="_blank" class="text-blue-600 hover:underline">Learn more</a>
+        </li>
+        <li class="border border-gray-300 rounded p-4 hover:shadow-md transition">
+          <h3 class="text-xl font-semibold mb-2">Journaling</h3>
+          <p>Writing down your thoughts and feelings can help you process emotions and reduce stress.</p>
+          <a href="https://psychcentral.com/lib/the-health-benefits-of-journaling/" target="_blank" class="text-blue-600 hover:underline">Learn more</a>
+        </li>
+        <li class="border border-gray-300 rounded p-4 hover:shadow-md transition">
+          <h3 class="text-xl font-semibold mb-2">Professional Help</h3>
+          <p>If you feel overwhelmed, consider reaching out to a mental health professional.</p>
+          <a href="https://www.mentalhealth.gov/get-help/immediate-help" target="_blank" class="text-blue-600 hover:underline">Learn more</a>
+        </li>
+      </ul>
+    </section>
+
+    <section id="breathing-exercise" class="bg-white rounded-lg shadow p-6 text-center text-gray-900">
+      <h2 class="text-2xl font-bold mb-4">Breathing Exercise</h2>
+      <div id="breathing-count" class="text-6xl font-extrabold mb-4">4</div>
+      <div id="breathing-phase" class="text-xl mb-6">Inhale</div>
+      <button id="breathing-toggle" class="px-6 py-3 rounded text-white font-semibold bg-green-600 hover:bg-green-700 transition">Start</button>
+    </section>
+  </main>
+
+  <script>
+    // Behavioral Tracker JS
+    const moods = ['Happy', 'Sad', 'Anxious', 'Stressed', 'Calm', 'Angry', 'Neutral'];
+    const moodColors = {
+      Happy: 'bg-yellow-400',
+      Sad: 'bg-blue-400',
+      Anxious: 'bg-purple-500',
+      Stressed: 'bg-red-500',
+      Calm: 'bg-green-400',
+      Angry: 'bg-red-700',
+      Neutral: 'bg-gray-400',
+    };
+
+    const moodButtonsContainer = document.getElementById('mood-buttons');
+    const logsList = document.getElementById('logs-list');
+    const loadingDiv = document.getElementById('loading');
+    const behavioralForm = document.getElementById('behavioral-form');
+
+    let selectedMood = '';
+
+    function createMoodButtons() {
+      moods.forEach(mood => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = mood;
+        btn.className = `px-4 py-2 rounded text-white font-semibold focus:outline-none transition ${moodColors[mood] || 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`;
+        btn.addEventListener('click', () => {
+          selectedMood = mood;
+          updateMoodButtons();
+        });
+        moodButtonsContainer.appendChild(btn);
+      });
+    }
+
+    function updateMoodButtons() {
+      Array.from(moodButtonsContainer.children).forEach(btn => {
+        if (btn.textContent === selectedMood) {
+          btn.className = `px-4 py-2 rounded text-white font-semibold focus:outline-none transition ${moodColors[selectedMood]}`;
+        } else {
+          btn.className = 'px-4 py-2 rounded text-gray-700 bg-gray-300 hover:bg-gray-400';
+        }
+      });
+    }
+
+    async function fetchLogs() {
+      loadingDiv.classList.remove('hidden');
+      try {
+        const response = await fetch('/api/behavioral-logs');
+        if (!response.ok) throw new Error('Failed to fetch logs');
+        const data = await response.json();
+        renderLogs(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        loadingDiv.classList.add('hidden');
+      }
+    }
+
+    function renderLogs(logs) {
+      logsList.innerHTML = '';
+      if (logs.length === 0) {
+        logsList.innerHTML = '<p>No logs yet.</p>';
+        return;
+      }
+      logs.forEach(log => {
+        const li = document.createElement('li');
+        li.className = 'border-b border-gray-200 py-2';
+        li.innerHTML = `
+          <p><strong>Date:</strong> ${new Date(log.date).toLocaleString()}</p>
+          <p><strong>Mood:</strong> <span class="inline-block px-2 py-1 rounded text-white ${moodColors[log.mood] || 'bg-gray-400'}">${log.mood}</span></p>
+          ${log.activities ? `<p><strong>Activities:</strong> ${log.activities}</p>` : ''}
+          ${log.sleepHours !== undefined ? `<p><strong>Sleep Hours:</strong> ${log.sleepHours}</p>` : ''}
+          ${log.notes ? `<p><strong>Notes:</strong> ${log.notes}</p>` : ''}
+        `;
+        logsList.appendChild(li);
+      });
+    }
+
+    behavioralForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!selectedMood) {
+        alert('Please select your mood.');
+        return;
+      }
+      const log = {
+        mood: selectedMood,
+        activities: document.getElementById('activities').value,
+        sleepHours: Number(document.getElementById('sleepHours').value),
+        notes: document.getElementById('notes').value,
+      };
+      try {
+        const response = await fetch('/api/behavioral-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(log),
+        });
+        if (!response.ok) throw new Error('Failed to save log');
+        selectedMood = '';
+        updateMoodButtons();
+        behavioralForm.reset();
+        fetchLogs();
+      } catch (error) {
+        alert('Error saving log.');
+        console.error(error);
+      }
+    });
+
+    createMoodButtons();
+    fetchLogs();
+
+    // Voice Recorder JS
+    const startRecordingBtn = document.getElementById('start-recording');
+    const stopRecordingBtn = document.getElementById('stop-recording');
+    const audioPlayback = document.getElementById('audio-playback');
+    const voiceAnalysisResult = document.getElementById('voice-analysis-result');
+
+    let mediaRecorder;
+    let audioChunks = [];
+
+    startRecordingBtn.addEventListener('click', async () => {
+      voiceAnalysisResult.classList.add('hidden');
+      audioPlayback.classList.add('hidden');
+      audioChunks = [];
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Your browser does not support audio recording.');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          audioPlayback.src = audioUrl;
+          audioPlayback.classList.remove('hidden');
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.wav');
+          try {
+            const response = await fetch('/api/analyze-voice', {
+              method: 'POST',
+              body: formData,
+            });
+            if (!response.ok) throw new Error('Voice analysis failed');
+            const data = await response.json();
+            voiceAnalysisResult.textContent = JSON.stringify(data, null, 2);
+            voiceAnalysisResult.classList.remove('hidden');
+          } catch (error) {
+            alert('Error analyzing voice.');
+            console.error(error);
+          }
+        };
+        mediaRecorder.start();
+        startRecordingBtn.classList.add('hidden');
+        stopRecordingBtn.classList.remove('hidden');
+      } catch (error) {
+        alert('Could not access microphone.');
+        console.error(error);
+      }
+    });
+
+    stopRecordingBtn.addEventListener('click', () => {
+      if (mediaRecorder) mediaRecorder.stop();
+      startRecordingBtn.classList.remove('hidden');
+      stopRecordingBtn.classList.add('hidden');
+    });
+
+    // Breathing Exercise JS
+    const breathingCount = document.getElementById('breathing-count');
+    const breathingPhase = document.getElementById('breathing-phase');
+    const breathingToggle = document.getElementById('breathing-toggle');
+
+    let breathingRunning = false;
+    let breathingTimer;
+    let breathingInterval;
+
+    breathingToggle.addEventListener('click', () => {
+      breathingRunning = !breathingRunning;
+      if (breathingRunning) {
+        breathingToggle.textContent = 'Stop';
+        startBreathingCycle();
+      } else {
+        breathingToggle.textContent = 'Start';
+        clearTimeout(breathingTimer);
+        clearInterval(breathingInterval);
+        breathingCount.textContent = '4';
+        breathingPhase.textContent = 'Inhale';
+      }
+    });
+
+    function startBreathingCycle() {
+      let phase = 'Inhale';
+      let count = 4;
+      breathingCount.textContent = count;
+      breathingPhase.textContent = phase;
+
+      breathingInterval = setInterval(() => {
+        count--;
+        breathingCount.textContent = count > 0 ? count : '...';
+      }, 1000);
+
+      breathingTimer = setTimeout(() => {
+        clearInterval(breathingInterval);
+        if (phase === 'Inhale') {
+          phase = 'Hold';
+          count = 7;
+        } else if (phase === 'Hold') {
+          phase = 'Exhale';
+          count = 8;
+        } else if (phase === 'Exhale') {
+          phase = 'Inhale';
+          count = 4;
+        }
+        breathingPhase.textContent = phase;
+        startBreathingCycle();
+      }, count * 1000);
+    }
+  </script>
+</body>
+</html>
